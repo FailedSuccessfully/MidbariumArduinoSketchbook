@@ -65,6 +65,7 @@ void setup() {
 void loop() {
   if (!digitalRead(RESET_PIN)){
       reset();
+      player.stopTrack();
     }
   if (!digitalRead(BUTTON_PIN)){
     int total = 0;
@@ -90,14 +91,16 @@ void loop() {
     player.stopTrack();
     if (total == 0){
       player.playTrack(2);
+    } else {
+      player.playTrack(1);
     }
-    delay(500);
+  } else {
+    reset();
   }
   
 }
 
 void  reset(){
-  player.stopTrack();
     
   for (int i = 0; i < SENSOR_COUNT; i++){
       int jump = i*2;
