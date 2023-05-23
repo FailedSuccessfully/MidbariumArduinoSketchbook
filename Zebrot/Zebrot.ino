@@ -1,29 +1,26 @@
-#define BUTTON_PIN 4
+const int FIRST_PIN = 2;
+const int FIRST_EVENT_ID = 3;
+const int PLAYER_COUNT = 3;
 
-bool is_pressed;
-int last_state;
-const long PRINT_TIME = 500;
-
-unsigned long last_print;
-
-void setup()
-{
+const float TIME_BUFFER = 250;
+float last_trigger[PLAYER_COUNT] = {0};
+void setup() {
   Serial.begin(9600);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  is_pressed = false;
-  last_state = digitalRead(BUTTON_PIN);
-  last_print = millis();
-}
-void loop()
-{
-  unsigned long now = millis();
-  int button_state = digitalRead(BUTTON_PIN);
-  if (button_state != last_state && now - last_print > PRINT_TIME){
-    if (button_state == LOW){
-      Serial.println(button_state);
-      last_print = now;
-    }
-    
+  // put your setup code here, to run once:
+  for (int i = 0; i < PLAYER_COUNT; i++){
+    pinMode(FIRST_PIN + i, INPUT_PULLUP);
   }
-  last_state = button_state;
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  for (int i = 0; i < PLAYER_COUNT; i++){
+    if (last_trigger[i] + TIME_BUFFER  < millis() && digitalRead(FIRST_PIN + i) == 0){
+      Serial.print(FIRST_EVENT_ID + i);
+      Serial.println(":none");
+      last_trigger[i] = millis ()+ TIME_BUFFER;
+    } 
+  }
+
 }
