@@ -23,7 +23,6 @@ int const INCORRECT_PIN = 31;
 int const BUTTON_PIN = 29;
 int const RESET_PIN = 28;
 
-
 void setup() {
   
   Serial.begin(115200);
@@ -63,10 +62,6 @@ void setup() {
 }
 
 void loop() {
-  if (!digitalRead(RESET_PIN)){
-      reset();
-      player.stopTrack();
-    }
   if (!digitalRead(BUTTON_PIN)){
     int total = 0;
     for (int i = 0; i < SENSOR_COUNT; i++){
@@ -87,8 +82,7 @@ void loop() {
       }
       total += value;
     }
-
-    player.stopTrack();
+    
     if (total == 0){
       player.playTrack(2);
     } else {
