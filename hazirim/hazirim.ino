@@ -18,10 +18,11 @@ SFEMP3Shield player;
 
 int const SENSOR_COUNT = 6;
 int const SENSOR_PIN = 22;
+int const SENSOR_PINS[] = {22, 23, 48, 25, 46, 27};
 int const CORRECT_PIN = 30;
 int const INCORRECT_PIN = 31;
-int const BUTTON_PIN = 29;
-int const RESET_PIN = 28;
+int const BUTTON_PIN = 28;
+int const RESET_PIN = 44;
 
 void setup() {
   
@@ -66,7 +67,7 @@ void loop() {
     int total = 0;
     for (int i = 0; i < SENSOR_COUNT; i++){
       int jump = i*2;
-      int value = digitalRead(SENSOR_PIN + i);
+      int value = digitalRead(SENSOR_PINS[i]);
         Serial.print(i);
         Serial.print(" ~ ");
         Serial.println(value);
