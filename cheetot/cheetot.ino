@@ -1,4 +1,4 @@
-const int first_trigger_pin = 8;
+const int first_trigger_pin = 2;
 const int trigger_count = 3;
 const int reads_per_frame = 100;
 

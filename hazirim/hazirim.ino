@@ -86,6 +86,7 @@ void loop() {
     
     if (total == 0){
       player.playTrack(2);
+      delay(3000);
     } else {
       player.playTrack(1);
     }
