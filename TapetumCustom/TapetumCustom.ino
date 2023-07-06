@@ -47,28 +47,28 @@ float idleTimer = 0;
 
 //Gyro scale 245 dps convert to radians/sec and offsets
 float Gscale = (M_PI / 180.0) * 0.00875; //245 dps scale sensitivity = 8.75 mdps/LSB
-int G_offset[3] = {-8, 47, 98};
+int G_offset[3] = {22, -37, 116};
 
 //Accel scale 16457.0 to normalize
 float A_B[3]
- { -512.01,  340.23, -493.06};
+ { 2196.60,-2286.13,14703.22};
 
  float A_Ainv[3][3]
-  {{  1.00704, -0.00064,  0.00771},
-  { -0.00064,  1.00471, -0.01227},
-  {  0.00771, -0.01227,  1.03213}};
+  {{  9.98525,  5.97623,  2.07530},
+  {  5.97623,  9.96843, -2.01359},
+  {  2.07530, -2.01359, 15.18723}};
 
 //Mag scale 3746.0 to normalize
 float M_B[3]
- { 2683.31,-1369.25,-1094.51};
+ { 1695.83,-11373.53,-8891.47};
 
  float M_Ainv[3][3]
-  {{  0.94543,  0.26467, -0.05522},
-  {  0.26467,  0.83806, -0.02976},
-  { -0.05522, -0.02976,  1.10754}};
+  {{ 59.10781,-10.67693, 31.51922},
+  {-10.67693, 77.96686, 14.05583},
+  { 31.51922, 14.05583, 41.09224}};
 
 // local magnetic declination in degrees
-float declination = 5.1;
+float declination = 4.58;
 
 // These are the free parameters in the Mahony filter and fusion scheme,
 // Kp for proportional feedback, Ki for integral
