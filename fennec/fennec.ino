@@ -1,7 +1,7 @@
 bool phase;
 int p1btn = 2;
 int p2btn = 6;
-int p1rel = 10
+int p1rel = 10;
 int p2rel = 11;
 
 void setup() {
@@ -14,7 +14,7 @@ void setup() {
     pinMode(p2rel, OUTPUT);
 
     phase = false;
-    Serial.begin(115200);
+    Serial.begin(9600);
 }
 
 void loop() {
@@ -28,7 +28,7 @@ void loop() {
 
   for (int i = 0; i < 4; i++){
     if (digitalRead(p+i) == LOW){
-      Serial.write(p+i);
+      Serial.print(p+i - 2);
       alter();
     }
   }
