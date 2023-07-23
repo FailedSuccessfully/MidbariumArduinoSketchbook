@@ -41,7 +41,8 @@ LSM9DS1 imu;
 const float TIME_TO_IDLE = 10;
 const float AWAKE_ANGLE = 1;
 
-int RelayPin = 6;
+int RelayPin = 2;
+int buttonPin = 3;
 static bool isActive = false;
 float idleTimer = 0;
 
@@ -78,7 +79,7 @@ float declination = 4.96;
 unsigned long now = 0, last = 0; //micros() timers for AHRS loop
 float deltat = 0;  //loop time in seconds
 
-#define PRINT_SPEED 200 // ms between angle prints
+#define PRINT_SPEED 350 // ms between angle prints
 unsigned long lastPrint = 0; // Keep track of print time
 
 // Vector to hold quaternion
@@ -91,6 +92,7 @@ static int counter;
 void setup()
 {
   pinMode(RelayPin, OUTPUT);
+  pinMode(buttonPin, INPUT_PULLUP);
   counter = 0;
   roll = pitch = yaw = 0;
   Serial.begin(115200);
@@ -152,6 +154,12 @@ void loop()
       digitalWrite(RelayPin, LOW);
     }
 
+    //on button
+    if (digitalRead(buttonPin) == LOW){
+      isActive = true;
+      digitalWrite(RelayPin, LOW);
+    }
+
     MahonyQuaternionUpdate(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2],
                            Mxyz[0], Mxyz[1], Mxyz[2], deltat);
 
@@ -163,12 +171,12 @@ void loop()
     
     float tilt = abs(Gxyz[0]) + abs(Gxyz[1]) + abs(Gxyz[2]);
       
-    if (!isActive && tilt > AWAKE_ANGLE){
-      isActive = true;
-      digitalWrite(RelayPin, HIGH);
+    // if (!isActive && tilt > AWAKE_ANGLE){
+    //   isActive = true;
+    //   digitalWrite(RelayPin, HIGH);
 
-      idleTimer = 0;
-    }
+    //   idleTimer = 0;
+    // }
 
     if(isActive && tilt > 0.1*AWAKE_ANGLE){
       idleTimer = 0;
