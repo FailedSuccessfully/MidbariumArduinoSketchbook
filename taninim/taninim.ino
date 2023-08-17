@@ -1,9 +1,7 @@
 // constants won't change. They're used here to set pin numbers:
-int ropes[] = {2, 6, 10, 22};
+const int ropes[] = {2, 6, 10, 22};
 const int ropeEvent = 12;
-const float message_time = 50;
-float next_message = 50;
-
+bool flags[4][4];
 void setup() {
 Serial.begin(9600);
   for (int i =0; i < 4; i++){
@@ -11,27 +9,32 @@ Serial.begin(9600);
       pinMode(ropes[i] + j, INPUT_PULLUP);
     }
   }
+  for (int i = 0; i < 4; i++){
+    for (int j = 0; j < 4; j++){
+      flags[i][j] = false;
+    }
+  }
 }
 
 void loop() {
-
-  // if (millis() > next_message){
     for (int i =0; i < 4; i++){
       int val = digitalRead(ropes[i]);
-      if (val == 0){
-        // Serial.print("r~");
-        Serial.print(ropeEvent + i);
-        Serial.println(":none");
+      if (val == HIGH){
+        flags[i][0] = false;
       }
-      for (int j = 0; j < 3; j++) {
-        int b = digitalRead(ropes[i] + j + 1);
-        if (b == 0){
-          // Serial.print("b~");
-          Serial.print(j + i*3);
-          Serial.println(":none");
+      else if (!flags[i][0]){
+        Serial.println(ropeEvent + i);
+        flags[i][0] = true;
+      }
+      for (int j = 1; j < 4; j++) {
+        int b = digitalRead(ropes[i] + j);
+        if (b == HIGH){
+          flags[i][j] = false;
+        }
+        else if (!flags[i][j]) {
+          Serial.println(j + i*3 - 1);
+          flags[i][j] = true;
         }
       }
-  //   }
-  //   next_message = millis() + message_time;
    }
 }
