@@ -89,6 +89,7 @@ void loop() {
       delay(3000);
     } else {
       player.playTrack(1);
+      delay(2000);
     }
   } else {
     reset();
