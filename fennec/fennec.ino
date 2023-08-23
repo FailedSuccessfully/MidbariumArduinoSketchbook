@@ -1,44 +1,112 @@
-bool phase;
-int p1btn = 2;
-int p2btn = 6;
-int p1rel = 10;
-int p2rel = 11;
+const int fpb = 2;
+const int spb = 6;
+const int fpr = 10;
+const int spr = 11;
+
+bool p_turn = true;
+int turns = 0;
+float time;
 
 void setup() {
-  // put your setup code here, to run once:
   for (int i = 0; i < 4; i++){
-    pinMode(p1btn + i, INPUT_PULLUP);
-    pinMode(p2btn + i, INPUT_PULLUP);
+    pinMode(fpb + i, INPUT_PULLUP);
+    pinMode(spb + i, INPUT_PULLUP);
   }
-    pinMode(p1rel, OUTPUT);
-    pinMode(p2rel, OUTPUT);
-
-    phase = false;
-    Serial.begin(9600);
+  pinMode(fpr, OUTPUT);
+  pinMode(spr, OUTPUT);
+  digitalWrite(spr, HIGH);
+  digitalWrite(fpr, HIGH);
+  Serial.begin(115200);
+  while(!Serial);
+  time = millis();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  int p;
-  if (phase){
-    p = 6;
+  int playerButton, playerRelay;
+  if (p_turn){
+    playerButton = fpb;
+    playerRelay = fpr;
   } else {
-    p = 2;
+    playerButton = spb;
+    playerRelay = spr;
   }
 
-  for (int i = 0; i < 4; i++){
-    if (digitalRead(p+i) == LOW){
-      Serial.print(p+i - 2);
-      alter();
+  if (millis() - time > 60000){
+    p_turn = true;
+    turns = 0;
+    Serial.println("reset");
+    time = millis();
+    digitalWrite(spr, HIGH);
+    digitalWrite(fpr, HIGH);
+  }
+  else{
+    digitalWrite(playerRelay, LOW);
+    for (int i = 0; i < 4; i++ ){
+      int currentButton = playerButton + i;
+      if (digitalRead(currentButton) == LOW){
+        Serial.println(currentButton - 1);
+        p_turn = !p_turn;
+        delay(5000);
+        digitalWrite(playerRelay, HIGH);
+        turns++;
+        time = millis();
+      }
     }
+
+    if (turns >= 8){
+      turns = 0;
+      digitalWrite(fpr, LOW);
+      digitalWrite(spr, LOW);
+
+      delay(20000);
+      digitalWrite(fpr, HIGH);
+      digitalWrite(spr, HIGH);
+      
+      time = millis();
+    }
+}
+
+
+///////////////////////////////
+/*
+  digitalWrite(fpr, LOW);
+  while (p_turn){
+    for (int i = fpb; i < fpb + 4; i++){
+      if (digitalRead(i) == LOW){
+        Serial.println(i - 1);
+        p_turn = false;
+        digitalWrite(fpr, HIGH);
+        delay(5000);
+      }
+    }
+    if (millis() - time > 60000){
+
+    }
+    
   }
+  digitalWrite(spr, LOW);
+  while (!p_turn){
+    for (int j = spb; j < spb + 4; j++){
+      if (digitalRead(j) == LOW){
+        Serial.println(j - 1);
+        p_turn = true;
+        digitalWrite(spr, HIGH);
+        delay(5000);
+      }
+    }
+    
+  }
+  turns++;
+  if (turns >= 4){
+    turns = 0;
+    digitalWrite(fpr, LOW);
+    digitalWrite(spr, LOW);
+
+    delay(10000);
+    digitalWrite(fpr, HIGH);
+    digitalWrite(spr, HIGH);
+
+    }
+    */
 }
-
-void alter() {
-  phase = !phase;
-
-  digitalWrite(p1rel, phase);
-  digitalWrite(p2rel, !phase);
-}
-
-
+  
