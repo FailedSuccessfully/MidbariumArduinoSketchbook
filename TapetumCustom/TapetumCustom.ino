@@ -1,3 +1,4 @@
+
 // New UW Mahony AHRS for the LSM9DS1  S.J. Remington 3/2021
 // Requires the Sparkfun LSM9DS1 library
 // Standard sensor orientation X North (yaw=0), Y West, Z up
@@ -25,6 +26,8 @@
    CSG, CSXM, SDOG, and SDOXM should all be pulled high.
    pullups on the ADAFRUIT breakout board do this.
 */
+
+
 // The SFE_LSM9DS1 library requires both Wire and SPI be
 // included BEFORE including the 9DS1 library.
 #include <Wire.h>
@@ -41,45 +44,47 @@ LSM9DS1 imu;
 const float TIME_TO_IDLE = 10;
 const float AWAKE_ANGLE = 1;
 
-int RelayPin = 2;
-int buttonPin = 3;
+int RelayPin = 3;
+int buttonPin = 2;
 static bool isActive = false;
 float idleTimer = 0;
+int printCount = 0;
 
 //Gyro scale 245 dps convert to radians/sec and offsets
 float Gscale = (M_PI / 180.0) * 0.00875; //245 dps scale sensitivity = 8.75 mdps/LSB
-int G_offset[3] = {15, -49, 127};
+int G_offset[3] = {18, -5, -79};
 
 //Accel scale 16457.0 to normalize
- float A_B[3]
- { 2454.76,-1966.80,14814.09};
+float A_B[3]
+ {15038.90,  254.41,-3874.64};
 
  float A_Ainv[3][3]
-  {{ 10.90396,  7.44281,  2.67338},
-  {  7.44281, 12.42317, -2.37700},
-  {  2.67338, -2.37700, 18.11309}};
+  {{ 20.56722,  0.00357, -3.45224},
+  {  0.00357, 21.53607,  0.45116},
+  { -3.45224,  0.45116,  5.04211}};
 
 //Mag scale 3746.0 to normalize
+
  float M_B[3]
- { 1384.62,-10830.25,-8738.20};
+ { 3817.30, 1469.65, 1200.68};
 
  float M_Ainv[3][3]
-  {{ 53.50695, -9.30902, 28.16361},
-  { -9.30902, 70.26893, 12.35952},
-  { 28.16361, 12.35952, 37.71593}};
+  {{ 13.94891, -0.16514, -0.30097},
+  { -0.16514, 12.57697,  3.17729},
+  { -0.30097,  3.17729,  5.27430}};
 // local magnetic declination in degrees
 float declination = 4.96;
 
 // These are the free parameters in the Mahony filter and fusion scheme,
 // Kp for proportional feedback, Ki for integral
 // Kp is not yet optimized. Ki is not used.
-#define Kp 50.0
-#define Ki 0.0
+#define Kp 5.0
+#define Ki 1.0
 
 unsigned long now = 0, last = 0; //micros() timers for AHRS loop
 float deltat = 0;  //loop time in seconds
 
-#define PRINT_SPEED 350 // ms between angle prints
+#define PRINT_SPEED 333 // ms between angle prints
 unsigned long lastPrint = 0; // Keep track of print time
 
 // Vector to hold quaternion
@@ -96,11 +101,19 @@ void setup()
   counter = 0;
   roll = pitch = yaw = 0;
   Serial.begin(115200);
+  digitalWrite(RelayPin, HIGH);
   while (!Serial); //wait for connection
   Serial.println();
   Serial.println("LSM9DS1 AHRS starting");
 
   Wire.begin();
+  //sttings
+//  imu.settings.gyro.sampleRate = 6;
+//  imu.settings.accel.sampleRate = 1;
+//  imu.settings.gyro.scale = 245;
+//  imu.settings.accel.scale = 8;
+//  imu.settings.mag.scale = 16;
+//  imu.settings.mag.tempCompensationEnable = true;
 
   if (imu.begin() == false) // with no arguments, this uses default addresses (AG:0x6B, M:0x1E) and i2c port (Wire).
   {
@@ -129,7 +142,7 @@ void loop()
     updated |= 4; //gyro updated
     imu.readGyro();
   }
-  if (updated == 7) //all sensors updated? // I shoould probaby seperate reading and printing
+  if (updated == 7) //all sensors updated? // I shoould probaby seperate reading and printingd
   {
     updated = 0; //reset update flags
     loop_counter++;
@@ -138,9 +151,9 @@ void loop()
     // correct accel/gyro handedness
     // Note: the illustration in the LSM9DS1 data sheet implies that the magnetometer
     // X and Y axes are rotated with respect to the accel/gyro X and Y, but this is not case.
-
-    //Axyz[0] = -Axyz[0]; //fix accel/gyro handedness
-    Gxyz[0] = -Gxyz[0]; //must be done after offsets & scales applied to raw data
+//
+//    Axyz[0] = -Axyz[0]; //fix accel/gyro handedness
+//    Gxyz[0] = -Gxyz[0]; //must be done after offsets & scales applied to raw data
    
     now = micros();
     deltat = (now - last) * 1.0e-6; //seconds since last update
@@ -149,15 +162,18 @@ void loop()
 
     // check activity  
     idleTimer += deltat;
-    if (idleTimer >= TIME_TO_IDLE){
+    if (isActive && idleTimer >= TIME_TO_IDLE){
       isActive = false;
-      digitalWrite(RelayPin, LOW);
+      digitalWrite(RelayPin, HIGH);
+      Serial.println("!false");
     }
 
     //on button
-    if (digitalRead(buttonPin) == LOW){
+    if (!isActive && digitalRead(buttonPin) == LOW){
+      idleTimer = 0;
       isActive = true;
       digitalWrite(RelayPin, LOW);
+      Serial.println("!true");
     }
 
     MahonyQuaternionUpdate(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2],
@@ -171,59 +187,11 @@ void loop()
     
     float tilt = abs(Gxyz[0]) + abs(Gxyz[1]) + abs(Gxyz[2]);
       
-    // if (!isActive && tilt > AWAKE_ANGLE){
-    //   isActive = true;
-    //   digitalWrite(RelayPin, HIGH);
-
-    //   idleTimer = 0;
-    // }
 
     if(isActive && tilt > 0.1*AWAKE_ANGLE){
       idleTimer = 0;
     }
-
-  //TODO: reavarege results
-    if (millis() - lastPrint > PRINT_SPEED) {
-      Serial.print("!");
-      Serial.println(isActive? "true" : "false");
-      Serial.print("@");
-      Serial.print(qsum[0] / counter);
-      // Serial.print(q[0]);
-      Serial.print("~");
-      Serial.print(qsum[1] / counter);
-      // Serial.print(q[1]);
-      Serial.print("~");
-      Serial.print(qsum[2] / counter);
-      // Serial.print(q[2]);
-      Serial.print("~");
-      Serial.print(qsum[3] / counter);
-      // Serial.print(q[3]);
-      Serial.println(); 
-      lastPrint = millis(); // Update lastPrint time
-      counter = 0;
-      qsum[0] = 
-      qsum[1] = 
-      qsum[2] = 
-      qsum[3] = 0.0;
-    }
-  }
-
-      // Define Tait-Bryan angles, strictly valid only for approximately level movement
-      // Standard sensor orientation : X magnetic North, Y West, Z Up (NWU)
-      // this code corrects for magnetic declination.
-      // Pitch is angle between sensor x-axis and Earth ground plane, toward the
-      // Earth is positive, up toward the sky is negative. Roll is angle between
-      // sensor y-axis and Earth ground plane, y-axis up is positive roll.
-      // Tait-Bryan angles as well as Euler angles are
-      // non-commutative; that is, the get the correct orientation the rotations
-      // must be applied in the correct order.
-      //
-      // http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-      // which has additional links.
-      
-      // WARNING: This angular conversion is for DEMONSTRATION PURPOSES ONLY. It WILL
-      // MALFUNCTION for certain combinations of angles! See https://en.wikipedia.org/wiki/Gimbal_lock
-      /*float nRoll  = atan2((q[0] * q[1] + q[2] * q[3]), 0.5 - (q[1] * q[1] + q[2] * q[2]));
+          float nRoll  = atan2((q[0] * q[1] + q[2] * q[3]), 0.5 - (q[1] * q[1] + q[2] * q[2]));
       float nPitch = asin(2.0 * (q[0] * q[2] - q[1] * q[3]));
       float nYaw   = atan2((q[1] * q[2] + q[0] * q[3]), 0.5 - ( q[2] * q[2] + q[3] * q[3]));
       // to degrees
@@ -238,43 +206,41 @@ void loop()
       if (nYaw < 0) nYaw += 360.0;
       if (nYaw >= 360.0) nYaw -= 360.0;
 
-    roll += nRoll;
-    pitch += nPitch;
-    yaw += nYaw;
-    counter++;
+    roll = nRoll;
+    pitch = nPitch;
+    yaw = nYaw;
 
-    float tilt = abs(Gxyz[0]) + abs(Gxyz[1]) + abs(Gxyz[2]);
-    
-    if (tilt > AWAKE_ANGLE){
-      if (!isActive)
-        Serial.println("!true");
-      isActive = true;
-      digitalWrite(RelayPin, HIGH);
-
-      idleTimer = 0;
-    }
-    if (millis() - lastPrint > PRINT_SPEED) {
-    Serial.print("@");
-    // Serial.print(imu.gx);
-    // Serial.print(", ");
-    // Serial.print(imu.gy);
-    // Serial.print(", ");
-    // Serial.println(imu.gz);
-      Serial.print(yaw / counter, 0);
+  //TODO: reavarege results
+    //if (isActive && tilt > 0.15) {
+      if (millis() - lastPrint > PRINT_SPEED) {
+//      Serial.print("#");
+//      Serial.print(yaw);
+//      Serial.print("~");  
+//      Serial.print(pitch);
+//      Serial.print("~");
+//      Serial.println(roll);
+      Serial.print("@"); 
+      Serial.print(qsum[1] / counter);
+//       Serial.print(q[1]);
       Serial.print("~");
-      Serial.print(pitch / counter, 0);
+      Serial.print(qsum[2] / counter);
+//       Serial.print(q[2]);
       Serial.print("~");
-      Serial.print(roll / counter, 0);
-//      Serial.print(", ");  //prints 24 in 300 ms (80 Hz) with 16 MHz ATmega328
-//      Serial.print(loop_counter);  //sample & update loops per print interval
-      loop_counter = 0;
-      Serial.println();
+      Serial.print(qsum[3] / counter);
+//       Serial.print(q[3]);
+      Serial.print("~");
+      Serial.print(qsum[0] / counter);
+//       Serial.print(q[0]);
+      Serial.println(); 
       lastPrint = millis(); // Update lastPrint time
       counter = 0;
-      roll = pitch = yaw = 0;
+      qsum[0] = 
+      qsum[1] = 
+      qsum[2] = 
+      qsum[3] = 0.0;
     }
   }
-  // consider averaging a few headings for better results*/
+
 }
 
 // vector math
@@ -296,6 +262,8 @@ void vector_normalize(float a[3])
 void get_scaled_IMU(float Gxyz[3], float Axyz[3], float Mxyz[3]) {
   byte i;
   float temp[3];
+
+  // not to self - shifted all arrays to the right
   Gxyz[0] = Gscale * (imu.gx - G_offset[0]);
   Gxyz[1] = Gscale * (imu.gy - G_offset[1]);
   Gxyz[2] = Gscale * (imu.gz - G_offset[2]);
@@ -339,6 +307,7 @@ void MahonyQuaternionUpdate(float ax, float ay, float az, float gx, float gy, fl
   float q1 = q[0], q2 = q[1], q3 = q[2], q4 = q[3];
   float norm;
   float hx, hy, hz;  //observed West horizon vector W = AxM
+  float bx, bz, vx, vy, vz; // helpers for when referencing direction of Earth's magnetic field
   float ux, uy, uz, wx, wy, wz; //calculated A (Up) and W in body frame
   float ex, ey, ez;
   float pa, pb, pc;
@@ -354,6 +323,21 @@ void MahonyQuaternionUpdate(float ax, float ay, float az, float gx, float gy, fl
   float q3q3 = q3 * q3;
   float q3q4 = q3 * q4;
   float q4q4 = q4 * q4;
+
+//  // Reference direction of Earth's magnetic field
+//  hx = 2.0f * mx * (0.5f - q3q3 - q4q4) + 2.0f * my * (q2q3 - q1q4) + 2.0f * mz * (q2q4 + q1q3);
+//  hy = 2.0f * mx * (q2q3 + q1q4) + 2.0f * my * (0.5f - q2q2 - q4q4) + 2.0f * mz * (q3q4 - q1q2);
+//  bx = sqrt((hx * hx) + (hy * hy));
+//  bz = 2.0f * mx * (q2q4 - q1q3) + 2.0f * my * (q3q4 + q1q2) + 2.0f * mz * (0.5f - q2q2 - q3q3);
+//
+//  // Estimated direction of gravity and magnetic field
+//  vx = 2.0f * (q2q4 - q1q3);
+//  vy = 2.0f * (q1q2 + q3q4);
+//  vz = q1q1 - q2q2 - q3q3 + q4q4;
+//  wx = 2.0f * bx * (0.5f - q3q3 - q4q4) + 2.0f * bz * (q2q4 - q1q3);
+//  wy = 2.0f * bx * (q2q3 - q1q4) + 2.0f * bz * (q1q2 + q3q4);
+//  wz = 2.0f * bx * (q1q3 + q2q4) + 2.0f * bz * (0.5f - q2q2 - q3q3);
+
 
   // Measured horizon vector = a x m (in body frame)
   hx = ay * mz - az * my;
@@ -377,6 +361,7 @@ void MahonyQuaternionUpdate(float ax, float ay, float az, float gx, float gy, fl
   wx = 2.0f * (q2q3 + q1q4);
   wy = q1q1 - q2q2 + q3q3 - q4q4;
   wz = 2.0f * (q3q4 - q1q2);
+  
 
   // Error is the summed cross products of estimated and measured directions of the reference vectors
   // It is assumed small, so sin(theta) ~ theta IS the angle required to correct the orientation error.
