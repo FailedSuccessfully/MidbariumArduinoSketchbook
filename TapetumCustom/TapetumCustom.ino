@@ -52,26 +52,26 @@ int printCount = 0;
 
 //Gyro scale 245 dps convert to radians/sec and offsets
 float Gscale = (M_PI / 180.0) * 0.00875; //245 dps scale sensitivity = 8.75 mdps/LSB
-int G_offset[3] = {18, -5, -79};
+int G_offset[3] = {14, 12, -19};
 
 //Accel scale 16457.0 to normalize
 float A_B[3]
- {15038.90,  254.41,-3874.64};
+ {14987.44,  452.74, -3422.26};
 
  float A_Ainv[3][3]
-  {{ 20.56722,  0.00357, -3.45224},
-  {  0.00357, 21.53607,  0.45116},
-  { -3.45224,  0.45116,  5.04211}};
+  {{ 10.44916, -0.18857, -0.90612},
+  { -0.18857, 10.76259,  0.09939},
+  { -0.90612,  0.09939,  4.82745}};
 
 //Mag scale 3746.0 to normalize
 
  float M_B[3]
- { 3817.30, 1469.65, 1200.68};
+ { 9494.05,  596.28,  420.72};
 
  float M_Ainv[3][3]
-  {{ 13.94891, -0.16514, -0.30097},
-  { -0.16514, 12.57697,  3.17729},
-  { -0.30097,  3.17729,  5.27430}};
+  {{ 24.50327,  1.90647, -7.02619},
+  {  1.90647, 25.50601,  5.05041},
+  { -7.02619,  5.05041, 14.22456}};
 // local magnetic declination in degrees
 float declination = 4.96;
 
@@ -147,13 +147,12 @@ void loop()
     updated = 0; //reset update flags
     loop_counter++;
     get_scaled_IMU(Gxyz, Axyz, Mxyz);
-
     // correct accel/gyro handedness
     // Note: the illustration in the LSM9DS1 data sheet implies that the magnetometer
     // X and Y axes are rotated with respect to the accel/gyro X and Y, but this is not case.
 //
-//    Axyz[0] = -Axyz[0]; //fix accel/gyro handedness
-//    Gxyz[0] = -Gxyz[0]; //must be done after offsets & scales applied to raw data
+    Axyz[0] = -Axyz[0]; //fix accel/gyro handedness
+    Gxyz[0] = -Gxyz[0]; //must be done after offsets & scales applied to raw data
    
     now = micros();
     deltat = (now - last) * 1.0e-6; //seconds since last update
@@ -212,7 +211,7 @@ void loop()
 
   //TODO: reavarege results
     //if (isActive && tilt > 0.15) {
-      if (millis() - lastPrint > PRINT_SPEED) {
+      if (millis() - lastPrint > PRINT_SPEED ) {
 //      Serial.print("#");
 //      Serial.print(yaw);
 //      Serial.print("~");  
@@ -220,6 +219,9 @@ void loop()
 //      Serial.print("~");
 //      Serial.println(roll);
       Serial.print("@"); 
+      Serial.print(qsum[0] / counter);
+//       Serial.print(q[0]);
+      Serial.print("~");
       Serial.print(qsum[1] / counter);
 //       Serial.print(q[1]);
       Serial.print("~");
@@ -228,9 +230,6 @@ void loop()
       Serial.print("~");
       Serial.print(qsum[3] / counter);
 //       Serial.print(q[3]);
-      Serial.print("~");
-      Serial.print(qsum[0] / counter);
-//       Serial.print(q[0]);
       Serial.println(); 
       lastPrint = millis(); // Update lastPrint time
       counter = 0;
