@@ -6,8 +6,10 @@ const int spr = 11;
 bool p_turn = true;
 int turns = 0;
 float time;
+bool active;
 
 void setup() {
+  active = true;
   for (int i = 0; i < 4; i++){
     pinMode(fpb + i, INPUT_PULLUP);
     pinMode(spb + i, INPUT_PULLUP);
@@ -22,51 +24,66 @@ void setup() {
 }
 
 void loop() {
-  int playerButton, playerRelay;
-  if (p_turn){
-    playerButton = fpb;
-    playerRelay = fpr;
-  } else {
-    playerButton = spb;
-    playerRelay = spr;
-  }
+  ReceiveSignal();
+  if (active){
+    int playerButton, playerRelay;
+    if (p_turn){
+      playerButton = fpb;
+      playerRelay = fpr;
+    } else {
+      playerButton = spb;
+      playerRelay = spr;
+    }
 
-  if (millis() - time > 60000){
-    p_turn = true;
-    turns = 0;
-    Serial.println("reset");
-    time = millis();
-    digitalWrite(spr, HIGH);
-    digitalWrite(fpr, HIGH);
-  }
-  else{
-    digitalWrite(playerRelay, LOW);
-    for (int i = 0; i < 4; i++ ){
-      int currentButton = playerButton + i;
-      if (digitalRead(currentButton) == LOW){
-        Serial.println(currentButton - 1);
-        p_turn = !p_turn;
-        delay(5000);
-        digitalWrite(playerRelay, HIGH);
-        turns++;
+    if (millis() - time > 60000){
+      p_turn = true;
+      turns = 0;
+      Serial.println("reset");
+      time = millis();
+      digitalWrite(spr, HIGH);
+      digitalWrite(fpr, HIGH);
+    }
+    else{
+      digitalWrite(playerRelay, LOW);
+      for (int i = 0; i < 4; i++ ){
+        int currentButton = playerButton + i;
+        if (digitalRead(currentButton) == LOW){
+          Serial.println(currentButton - 1);
+          p_turn = !p_turn;
+          delay(5000);
+          digitalWrite(playerRelay, HIGH);
+          turns++;
+          time = millis();
+        }
+      }
+
+      if (turns >= 8){
+        turns = 0;
+        digitalWrite(fpr, LOW);
+        digitalWrite(spr, LOW);
+
+        delay(20000);
+        digitalWrite(fpr, HIGH);
+        digitalWrite(spr, HIGH);
+        
         time = millis();
       }
-    }
-
-    if (turns >= 8){
-      turns = 0;
-      digitalWrite(fpr, LOW);
-      digitalWrite(spr, LOW);
-
-      delay(20000);
-      digitalWrite(fpr, HIGH);
-      digitalWrite(spr, HIGH);
-      
-      time = millis();
-    }
+  }
 }
 
-
+void ReceiveSignal(){
+  char signal = Serial.peek();
+  if (signal == '!'){
+    active = true;
+    Serial.Read();
+  } else if (signal == '*') {
+    active = false;
+    digitalWrite(spr, HIGH);
+    digitalWrite(fpr, HIGH);
+    Serial.Read();
+  }
+  delay(100);
+}
 ///////////////////////////////
 /*
   digitalWrite(fpr, LOW);
@@ -108,5 +125,4 @@ void loop() {
 
     }
     */
-}
   
