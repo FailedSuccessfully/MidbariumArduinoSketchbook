@@ -8,6 +8,20 @@ int turns = 0;
 float time;
 bool active;
 
+void ReceiveSignal(){
+  char signal = Serial.peek();
+  if (signal == '!'){
+    active = true;
+    Serial.read();
+  } else if (signal == '*') {
+    active = false;
+    digitalWrite(spr, HIGH);
+    digitalWrite(fpr, HIGH);
+    Serial.read();
+  }
+  delay(100);
+}
+
 void setup() {
   active = true;
   for (int i = 0; i < 4; i++){
@@ -70,20 +84,8 @@ void loop() {
       }
   }
 }
-
-void ReceiveSignal(){
-  char signal = Serial.peek();
-  if (signal == '!'){
-    active = true;
-    Serial.Read();
-  } else if (signal == '*') {
-    active = false;
-    digitalWrite(spr, HIGH);
-    digitalWrite(fpr, HIGH);
-    Serial.Read();
-  }
-  delay(100);
 }
+
 ///////////////////////////////
 /*
   digitalWrite(fpr, LOW);
