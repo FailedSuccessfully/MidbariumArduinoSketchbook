@@ -89,17 +89,12 @@ unsigned long lastPrint = 0; // Keep track of print time
 
 // Vector to hold quaternion
 static float q[4] = {1.0, 0.0, 0.0, 0.0};
-static float qsum[4] = {0.0, 0.0, 0.0, 0.0};
-static float yaw, pitch, roll; //Euler angle output
-static int counter;
 
 
 void setup()
 {
   pinMode(RelayPin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
-  counter = 0;
-  roll = pitch = yaw = 0;
   Serial.begin(115200);
   digitalWrite(RelayPin, HIGH);
   while (!Serial); //wait for connection
@@ -107,13 +102,6 @@ void setup()
   Serial.println("LSM9DS1 AHRS starting");
 
   Wire.begin();
-  //sttings
-//  imu.settings.gyro.sampleRate = 6;
-//  imu.settings.accel.sampleRate = 1;
-//  imu.settings.gyro.scale = 245;
-//  imu.settings.accel.scale = 8;
-//  imu.settings.mag.scale = 16;
-//  imu.settings.mag.tempCompensationEnable = true;
 
   if (imu.begin() == false) // with no arguments, this uses default addresses (AG:0x6B, M:0x1E) and i2c port (Wire).
   {
@@ -125,8 +113,23 @@ void setup()
 void loop()
 {
   static char updated = 0; //flags for sensor updates  
-  static int loop_counter=0; //sample & update loop counter
   static float Gxyz[3], Axyz[3], Mxyz[3]; //centered and scaled gyro/accel/mag data  
+
+    // check activity  
+    idleTimer += deltat;
+    if (isActive && idleTimer >= TIME_TO_IDLE){
+      isActive = false;
+      digitalWrite(RelayPin, HIGH);
+      Serial.println("!false");
+    }
+
+    //on button
+    if (!isActive && digitalRead(buttonPin) == LOW){
+      idleTimer = 0;
+      isActive = true;
+      digitalWrite(RelayPin, LOW);
+      Serial.println("!true");
+    }
 
   // Update the sensor values whenever new data is available
     //? I think this bottlenecks my reads
@@ -145,7 +148,6 @@ void loop()
   if (updated == 7) //all sensors updated? // I shoould probaby seperate reading and printingd
   {
     updated = 0; //reset update flags
-    loop_counter++;
     get_scaled_IMU(Gxyz, Axyz, Mxyz);
     // correct accel/gyro handedness
     // Note: the illustration in the LSM9DS1 data sheet implies that the magnetometer
@@ -153,93 +155,18 @@ void loop()
 //
     Axyz[0] = -Axyz[0]; //fix accel/gyro handedness
     Gxyz[0] = -Gxyz[0]; //must be done after offsets & scales applied to raw data
-   
-    now = micros();
-    deltat = (now - last) * 1.0e-6; //seconds since last update
-    last = now;
 
-
-    // check activity  
-    idleTimer += deltat;
-    if (isActive && idleTimer >= TIME_TO_IDLE){
-      isActive = false;
-      digitalWrite(RelayPin, HIGH);
-      Serial.println("!false");
-    }
-
-    //on button
-    if (!isActive && digitalRead(buttonPin) == LOW){
-      idleTimer = 0;
-      isActive = true;
-      digitalWrite(RelayPin, LOW);
-      Serial.println("!true");
-    }
 
     MahonyQuaternionUpdate(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2],
                            Mxyz[0], Mxyz[1], Mxyz[2], deltat);
 
-    qsum[0]+= q[0];
-    qsum[1]+= q[1];
-    qsum[2]+= q[2];
-    qsum[3]+= q[3];
-    counter++;
-    
     float tilt = abs(Gxyz[0]) + abs(Gxyz[1]) + abs(Gxyz[2]);
       
 
     if(isActive && tilt > 0.1*AWAKE_ANGLE){
       idleTimer = 0;
     }
-          float nRoll  = atan2((q[0] * q[1] + q[2] * q[3]), 0.5 - (q[1] * q[1] + q[2] * q[2]));
-      float nPitch = asin(2.0 * (q[0] * q[2] - q[1] * q[3]));
-      float nYaw   = atan2((q[1] * q[2] + q[0] * q[3]), 0.5 - ( q[2] * q[2] + q[3] * q[3]));
-      // to degrees
-      nYaw   *= 180.0 / PI;
-      nPitch *= 180.0 / PI;
-      nRoll *= 180.0 / PI;
-
-      // http://www.ngdc.noaa.gov/geomag-web/#declination
-      //conventional nav, yaw increases CW from North, corrected for local magnetic declination
-
-      nYaw = -(nYaw + declination);
-      if (nYaw < 0) nYaw += 360.0;
-      if (nYaw >= 360.0) nYaw -= 360.0;
-
-    roll = nRoll;
-    pitch = nPitch;
-    yaw = nYaw;
-
-  //TODO: reavarege results
-    //if (isActive && tilt > 0.15) {
-      if (millis() - lastPrint > PRINT_SPEED ) {
-//      Serial.print("#");
-//      Serial.print(yaw);
-//      Serial.print("~");  
-//      Serial.print(pitch);
-//      Serial.print("~");
-//      Serial.println(roll);
-      Serial.print("@"); 
-      Serial.print(qsum[0] / counter);
-//       Serial.print(q[0]);
-      Serial.print("~");
-      Serial.print(qsum[1] / counter);
-//       Serial.print(q[1]);
-      Serial.print("~");
-      Serial.print(qsum[2] / counter);
-//       Serial.print(q[2]);
-      Serial.print("~");
-      Serial.print(qsum[3] / counter);
-//       Serial.print(q[3]);
-      Serial.println(); 
-      lastPrint = millis(); // Update lastPrint time
-      counter = 0;
-      qsum[0] = 
-      qsum[1] = 
-      qsum[2] = 
-      qsum[3] = 0.0;
-    }
   }
-
 }
 
 // vector math

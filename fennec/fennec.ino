@@ -5,22 +5,24 @@ const int spr = 11;
 
 bool p_turn = true;
 int turns = 0;
-float time;
+float time, timet;
 bool active;
 
-void ReceiveSignal(){
+#define TIMEOUT 30600000 //8.5 hours in ms
+
+bool ReceiveSignal(){
   char signal = Serial.peek();
+  bool accept = true;
   if (signal == '!'){
     active = true;
-    Serial.read();
   } else if (signal == '*') {
     active = false;
-    digitalWrite(spr, HIGH);
-    digitalWrite(fpr, HIGH);
-    Serial.read();
+  } else {
+    accept = false;
   }
-  delay(100);
+  return accept;
 }
+
 
 void setup() {
   active = true;
@@ -28,6 +30,8 @@ void setup() {
     pinMode(fpb + i, INPUT_PULLUP);
     pinMode(spb + i, INPUT_PULLUP);
   }
+  pinMode(LED_BUILTIN, OUTPUT);
+
   pinMode(fpr, OUTPUT);
   pinMode(spr, OUTPUT);
   digitalWrite(spr, HIGH);
@@ -35,11 +39,30 @@ void setup() {
   Serial.begin(115200);
   while(!Serial);
   time = millis();
+  timet = millis();
 }
 
 void loop() {
-  ReceiveSignal();
-  if (active){
+  // if (ReceiveSignal()){
+  //   Serial.read();
+  //   Serial.read();
+  // }
+  //Serial.println(millis() - timet);
+  if (millis() - timet > TIMEOUT)
+  {
+    active = false;
+  }
+  delay(100);
+
+  if (!active){
+    digitalWrite(spr, HIGH);
+    digitalWrite(fpr, HIGH);
+    digitalWrite(LED_BUILTIN, LOW);
+
+  }
+  else{
+    digitalWrite(LED_BUILTIN, HIGH);
+
     int playerButton, playerRelay;
     if (p_turn){
       playerButton = fpb;
@@ -85,46 +108,3 @@ void loop() {
   }
 }
 }
-
-///////////////////////////////
-/*
-  digitalWrite(fpr, LOW);
-  while (p_turn){
-    for (int i = fpb; i < fpb + 4; i++){
-      if (digitalRead(i) == LOW){
-        Serial.println(i - 1);
-        p_turn = false;
-        digitalWrite(fpr, HIGH);
-        delay(5000);
-      }
-    }
-    if (millis() - time > 60000){
-
-    }
-    
-  }
-  digitalWrite(spr, LOW);
-  while (!p_turn){
-    for (int j = spb; j < spb + 4; j++){
-      if (digitalRead(j) == LOW){
-        Serial.println(j - 1);
-        p_turn = true;
-        digitalWrite(spr, HIGH);
-        delay(5000);
-      }
-    }
-    
-  }
-  turns++;
-  if (turns >= 4){
-    turns = 0;
-    digitalWrite(fpr, LOW);
-    digitalWrite(spr, LOW);
-
-    delay(10000);
-    digitalWrite(fpr, HIGH);
-    digitalWrite(spr, HIGH);
-
-    }
-    */
-  
